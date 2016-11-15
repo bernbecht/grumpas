@@ -88,7 +88,7 @@ int main(void)
             digitalWrite(interfacePin, HIGH); // Turn LED ON
         }
 
-        latX = acc_xyz.x;
+        lastX = acc_xyz.x;
 
 		delay(1000);
         digitalWrite(interfacePin, LOW); // Turn LED ON
