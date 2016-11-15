@@ -2,8 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <wiringPi.h> // Include WiringPi library!
+
 
 #define  DevAddr  0x53  //device address
+// Pin number declarations. We're using the Broadcom chip pin numbers.
+const int interfacePin = 21;
 
 struct acc_dat{
 	int x;
@@ -19,7 +23,7 @@ void adxl345_init(int fd)
 	wiringPiI2CWriteReg8(fd, 0x1e, 0x00);
 	wiringPiI2CWriteReg8(fd, 0x1f, 0x00);
 	wiringPiI2CWriteReg8(fd, 0x20, 0x00);
-	
+
 	wiringPiI2CWriteReg8(fd, 0x21, 0x00);
 	wiringPiI2CWriteReg8(fd, 0x22, 0x00);
 	wiringPiI2CWriteReg8(fd, 0x23, 0x00);
@@ -28,7 +32,7 @@ void adxl345_init(int fd)
 	wiringPiI2CWriteReg8(fd, 0x25, 0x0f);
 	wiringPiI2CWriteReg8(fd, 0x26, 0x2b);
 	wiringPiI2CWriteReg8(fd, 0x27, 0x00);
-	
+
 	wiringPiI2CWriteReg8(fd, 0x28, 0x09);
 	wiringPiI2CWriteReg8(fd, 0x29, 0xff);
 	wiringPiI2CWriteReg8(fd, 0x2a, 0x80);
@@ -60,22 +64,35 @@ int main(void)
 {
 	int fd;
 	struct acc_dat acc_xyz;
+    double lastX = 0.0;
+    double lastY;
+    double lastZ;
+    double range = 20.0;
 
 	fd = wiringPiI2CSetup(DevAddr);
-	
-	if(-1 == fd){
-		perror("I2C device setup error");	
-	}
 
-	adxl345_init(fd);
+	if(-1 == fd){
+		perror("I2C device setup error");
+	}
+    // Setup stuff:
+    wiringPiSetupGpio(); // Initialize wiringPi -- using Broadcom pin numbers
+    pinMode(interfacePin, OUTPUT);     // Set regular LED as output
+
+    adxl345_init(fd);
 
 	while(1){
 		acc_xyz = adxl345_read_xyz(fd);
 		printf("x: %05d  y: %05d  z: %05d\n", acc_xyz.x, acc_xyz.y, acc_xyz.z);
-		
+
+        if(acc_xyz.x - lastX > range) {
+            digitalWrite(interfacePin, HIGH); // Turn LED ON
+        }
+
+        latX = acc_xyz.x;
+
 		delay(1000);
+        digitalWrite(interfacePin, LOW); // Turn LED ON
 	}
-	
+
 	return 0;
 }
-
