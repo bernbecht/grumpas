@@ -86,6 +86,7 @@ int main(void)
 
         if(acc_xyz.x - lastX > range) {
             digitalWrite(interfacePin, HIGH); // Turn LED ON
+            printf("User movement");
         }
 
         lastX = acc_xyz.x;
