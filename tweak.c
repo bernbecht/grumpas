@@ -91,7 +91,7 @@ int main(void)
 
         lastX = acc_xyz.x;
 
-		delay(1000);
+		delay(100);
         digitalWrite(interfacePin, LOW); // Turn LED ON
 	}
 
