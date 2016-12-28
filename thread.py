@@ -40,14 +40,15 @@ def callbackNormalPhase():
 
 def callbackSensingPhase():
     print 'SENSING_PHASE_SCHEDULER: I sensed nothing. Finishing'
+    time.sleep(0.1)
     orchestrator.finish()
 
 def callbackSensorThread():
 	print 'Sensor: I got something new'
+	SENSOR_THREAD.stop()
 	SENSING_PHASE_SCHEDULER.cancel()
 	initSechudelers()
 	NORMAL_PHASE_SCHEDULER.start()
-	SENSOR_THREAD.stop()
 	orchestrator.restartSection()
 
 def init():
@@ -173,20 +174,32 @@ class PlayThread(Thread):
     
     def play(self):
         print 'PlayThread: going to playing the audiobook'
+        if self.isProcessAlive() != None:
+            print 'Playthread: process is dead'
+            return False
         self._player.stdin.write('p')
 
     def pause(self):
         print 'pause the audiobook'
+        if self.isProcessAlive() != None:
+            print 'Playthread: process is dead'
+            return False
         self._player.stdin.write('p')
 
     def volumeDown(self):
         print 'PlayThread: My volume is down!'
+        if self.isProcessAlive() != None:
+            print 'Playthread: process is dead'
+            return False
         for i in range (0, 3):
             self._player.stdin.write('-')
             time.sleep(0.1)
         
     def volumeUp(self):
         print 'PlayThread: My volume is up again!'
+        if self.isProcessAlive() != None:
+            print 'Playthread: process is dead'
+            return False
         for i in range (0, 3):
             self._player.stdin.write('+')
             time.sleep(0.1)
@@ -333,19 +346,19 @@ class Orchestrator(object):
     
     def reset(self):
         print 'Orchestrator: Reseting everything'
-        AUDIO_PLAYER.createSubProcess()
-
+        
+        SENSOR_THREAD.stop()
         NORMAL_PHASE_SCHEDULER.cancel()
-        SENSING_PHASE_SCHEDULER.cancel()
-    
-       
+        SENSING_PHASE_SCHEDULER.cancel() 
+ 
         global AUDIO_LAST_POSITION
         AUDIO_LAST_POSITION = 0
-        
+        AUDIO_PLAYER.createSubProcess()
+
+		#TODO: check if the file existsa and than remove it
         createFileLastPosition()
         os.remove(lastPositionFile)
-        
-        
+          
         initSechudelers()
         
         global isSensingMode
@@ -354,7 +367,6 @@ class Orchestrator(object):
         global AUDIO_WAS_PLAYING
         AUDIO_WAS_PLAYING = False
         
-        SENSOR_THREAD.stop()
         
 class AudioProcessPollerThread(Thread):
     def __init__(self):
