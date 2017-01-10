@@ -22,8 +22,10 @@ AUDIO_PAUSE_TIME = 0
 
 AUDIO_WAS_PLAYING = False
 
+# TODO: remove
 sectionDuration = 10 #in seconds
 sensorPhaseDuration = 5 #seconds
+
 isSensingMode = False
 lastPositionFile = 'audioLastPosition.txt'
 
@@ -31,11 +33,11 @@ def initSechudelers():
     global NORMAL_PHASE_SCHEDULER, SENSING_PHASE_SCHEDULER
     NORMAL_PHASE_SCHEDULER = Timer(NORMAL_PHASE_DURATION, callbackNormalPhase, ())
     SENSING_PHASE_SCHEDULER = Timer(SENSING_PHASE_DURATION, callbackSensingPhase, ())
-    
+
 def callbackNormalPhase():
     print 'NORMAL_PHASE_SCHEDULER: Calling SENSING SCHEDULER and Sensor Thread'
     SENSING_PHASE_SCHEDULER.start()
-    SENSOR_THREAD.resume()	
+    SENSOR_THREAD.resume()
     orchestrator.startSensingMode()
 
 def callbackSensingPhase():
@@ -57,7 +59,7 @@ def init():
     AUDIO_PLAYER.start()
     time.sleep(0.1)
     AUDIO_POLLER.start()
-	
+
 
 def createFileLastPosition():
     return open(lastPositionFile, "w")
@@ -81,16 +83,11 @@ def saveLastPosition(newFileContent):
     fo = open(lastPositionFile, "w")
     fo.write(str(newFileContent))
     fo.close()
-    
+
 def convertSecondsToTimeStamp(seconds):
     return time.strftime('%H:%M:%S', time.gmtime(seconds))
 
-
-AUDIO_LAST_POSITION = loadLastPosition()
-
-print 'AUDIO LENGTH %d' % AUDIO_LENGTH
-
-
+# Remove
 class TimeThread(Thread):
 
     def __init__(self, interval, cb):
@@ -132,8 +129,8 @@ class TimeThread(Thread):
                 time.sleep(1)
                 self.sectionTimer = self.sectionTimer + 1
                 self.audioTimer = self.audioTimer + 1
-                
-                if self.audioTimer > AUDIO_LENGTH: 
+
+                if self.audioTimer > AUDIO_LENGTH:
 					print 'TimerThread: The File Is OVER'
 					orchestrator.reset()
 
@@ -143,7 +140,7 @@ class TimeThread(Thread):
 
                 #if self.sectionTimer  == self.interval and self.callback:
                     #self.callback()
-                    
+
 
     def getTrackPosition(self):
         return self.audioTimer
@@ -157,11 +154,11 @@ class PlayThread(Thread):
 
     def run(self):
         self.createSubProcess()
-        
+
     def createSubProcess(self):
         lastPosition = None
 		#create subprocess
-        if AUDIO_LAST_POSITION > 0:	
+        if AUDIO_LAST_POSITION > 0:
             lastPosition = convertSecondsToTimeStamp(float(AUDIO_LAST_POSITION))
         #lastPosition = None
         subProcessParameters = ['omxplayer', AUDIO_PATH]
@@ -171,7 +168,7 @@ class PlayThread(Thread):
         print 'creating sub process to audiobook'
         self._player = subprocess.Popen(subProcessParameters,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds = True)
         self._player.stdin.write('p')
-    
+
     def play(self):
         print 'PlayThread: going to playing the audiobook'
         if self.isProcessAlive() != None:
@@ -194,7 +191,7 @@ class PlayThread(Thread):
         for i in range (0, 3):
             self._player.stdin.write('-')
             time.sleep(0.1)
-        
+
     def volumeUp(self):
         print 'PlayThread: My volume is up again!'
         if self.isProcessAlive() != None:
@@ -203,10 +200,10 @@ class PlayThread(Thread):
         for i in range (0, 3):
             self._player.stdin.write('+')
             time.sleep(0.1)
-            
+
     def isProcessAlive(self):
 		return self._player.poll()
-        
+
 class ButtonThread(Thread):
 
     def __init__(self):
@@ -216,13 +213,7 @@ class ButtonThread(Thread):
         self.clickFlag = False
 
     def run(self):
-        #if click, check the wasPlaying
-            #if wasPlaying = True
-                #say to orch to stop
-            #else, say to orch to start
-        
         global AUDIO_WAS_PLAYING
-
         while True:
             input_state = GPIO.input(BUTTON_GPIO)
             if input_state == False:
@@ -233,7 +224,7 @@ class ButtonThread(Thread):
                 else:
                     print 'I was paused now I should play'
                     orchestrator.play()
-                time.sleep(0.2)     
+                time.sleep(0.2)
 
     def emulateClick(self):
         print 'Clicking on button'
@@ -272,13 +263,16 @@ class SensorThread(Thread):
         print 'Sensor: reseting the interruption'
         self.sensorInterruption = False
 
+# TODO: remove
 def callbackWhenSensing():
     print 'Sensor callbackWhenSensing: HEY, I sensed something here!'
     orchestrator.restartSection()
 
+# TODO: remove
 def callbackSensingMode():
     orchestrator.finish()
 
+# TODO: remove
 def callback():
     print "Sensing mode"
     # to turn volume down
@@ -290,20 +284,20 @@ class Orchestrator(object):
         ''' Constructor. '''
 
     def play(self):
-        print "Orchestrator: I am playing everything"    
+        print "Orchestrator: I am playing everything"
         global AUDIO_WAS_PLAYING, AUDIO_PLAY_TIME
         AUDIO_WAS_PLAYING = True
-     
+
         if isSensingMode == True:
 			print "I was in the SENSING MODE"
 			AUDIO_PLAYER.volumeUp()
 			global isSensingMode
 			isSensingMode = False
         NORMAL_PHASE_SCHEDULER.start()
-        AUDIO_PLAYER.play()      
+        AUDIO_PLAYER.play()
         AUDIO_PLAY_TIME = time.time()
         print 'Orchestrator: Time when I started to PLAY', AUDIO_PLAY_TIME
-        
+
     def stop(self):
         global SENSOR_THREAD, SENSING_PHASE_SCHEDULER, NORMAL_PHASE_SCHEDULER, AUDIO_LAST_POSITION
         AUDIO_PLAYER.pause()
@@ -316,7 +310,7 @@ class Orchestrator(object):
         AUDIO_STOP_POSITION = time.time() - AUDIO_PLAY_TIME + float(AUDIO_LAST_POSITION)
         AUDIO_LAST_POSITION = AUDIO_STOP_POSITION
         print 'Orchestrator: Time when I will save', AUDIO_STOP_POSITION
-        
+
         saveLastPosition(AUDIO_STOP_POSITION)
 
     def startSensingMode(self):
@@ -343,37 +337,33 @@ class Orchestrator(object):
 
     def emulateSensorInterruption(self):
         self.sensorThread.sensorInterruptionEmulation()
-    
+
     def reset(self):
         print 'Orchestrator: Reseting everything'
-        
+
         SENSOR_THREAD.stop()
         NORMAL_PHASE_SCHEDULER.cancel()
-        SENSING_PHASE_SCHEDULER.cancel() 
- 
+        SENSING_PHASE_SCHEDULER.cancel()
+
         global AUDIO_LAST_POSITION
         AUDIO_LAST_POSITION = 0
         AUDIO_PLAYER.createSubProcess()
 
-		#TODO: check if the file existsa and than remove it
-        createFileLastPosition()
-        os.remove(lastPositionFile)
-          
+        if (os.path.exists(lastPositionFile)):
+            os.remove(lastPositionFile)
+
         initSechudelers()
-        
-        global isSensingMode
-        globalisSensingMode=False
-        
-        global AUDIO_WAS_PLAYING
+
+        global isSensingMode, AUDIO_WAS_PLAYING
+        isSensingMode = False
         AUDIO_WAS_PLAYING = False
-        
-        
+
 class AudioProcessPollerThread(Thread):
     def __init__(self):
         ''' Constructor. '''
         Thread.__init__(self)
         self._stop = threading.Event()
-        
+
     def stop(self):
         print 'AudioProcessPollerThread: I am stopped'
         self._stop.set()
@@ -383,8 +373,7 @@ class AudioProcessPollerThread(Thread):
 			 if AUDIO_PLAYER.isProcessAlive() != None:
 				 print 'AudioProcessPollerThread: proccess is dead'
 				 orchestrator.reset()
-				 
-				 		 		 
+
 AUDIO_PLAYER = PlayThread()
 AUDIO_POLLER = AudioProcessPollerThread()
 orchestrator = Orchestrator()
@@ -397,13 +386,17 @@ SENSING_PHASE_SCHEDULER = Timer(SENSING_PHASE_DURATION, callbackSensingPhase, ()
 
 SENSOR_THREAD = SensorThread(callbackSensorThread)
 
+AUDIO_LAST_POSITION = loadLastPosition()
+
+print 'AUDIO LENGTH %d' % AUDIO_LENGTH
+
 
 def main():
     init()
     time.sleep(1)
     buttonThread = ButtonThread()
     buttonThread.start()
-    
+
     orchestrator.play()
     # time.sleep(12)
     # orchestrator.emulateSensorInterruption()
@@ -421,6 +414,19 @@ def main():
     #     time.sleep(15)
     #     buttonThread.emulateClick()
 
+
+def stopAllThreads:
+    SENSOR_THREAD.stop()
+    NORMAL_PHASE_SCHEDULER.cancel()
+    SENSING_PHASE_SCHEDULER.cancel()
+
+# TODO: make a better name and unity with the actual reset
+def newReset:
+    AUDIO_PLAY_TIME = 0
+    AUDIO_PAUSE_TIME = 0
+    AUDIO_WAS_PLAYING = False
+    isSensingMode = False
+    AUDIO_LAST_POSITION = 0
 
 # Run following code when the program starts
 if __name__ == '__main__':
